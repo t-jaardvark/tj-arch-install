@@ -143,12 +143,15 @@ unzip VictorMono.zip
 rm VictorMono.zip
 popd
 #######################################################################
-# install yay
+# install yay as user (safer than running as root)
+echo "Installing yay AUR helper..."
+cd /tmp
 git clone https://aur.archlinux.org/yay.git
-pushd yay
-makepkg -si
-popd
-rm -rf yay
+cd yay
+# Build and install as the user
+sudo -u "$USER_USER" makepkg -si --noconfirm
+cd /
+rm -rf /tmp/yay
 #######################################################################
 
 
