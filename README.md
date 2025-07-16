@@ -32,7 +32,7 @@ A comprehensive, automated Arch Linux installation script that sets up a complet
 ### Step 2: Download and Run the Installation Script
 
 ```bash
-curl -L -o install.sh "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/main/01-base-install.bash" && chmod +x install.sh && ./install.sh
+curl -L -o install.sh "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/refs/heads/main/01-base-install.bash" && chmod +x install.sh && ./install.sh
 ```
 
 ### Step 3: Follow the Interactive Prompts

@@ -346,7 +346,7 @@ cp "/etc/pacman.d/mirrorlist" "/mnt/etc/pacman.d/"
 echo "Generating fstab..."
 genfstab -U /mnt >> /mnt/etc/fstab
 
-curl -L -o "o2.sh" "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/main/02-arch-chroot-install.bash"
+curl -L -o "o2.sh" "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/refs/heads/main/02-arch-chroot-install.bash"
 cp "o1.sh" "o2.sh" "/mnt"
 chmod +x "/mnt/o1.sh" "/mnt/o2.sh"
 # Copy answers.env to new system
