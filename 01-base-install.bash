@@ -32,9 +32,27 @@ get_block_device() {
         clear
         echo "Checking available block devices..."
         lsblk
-        read -p "Enter block device (e.g., /dev/sda): " USER_DEV
+        
+        # Try to find a suitable default device
+        DEFAULT_DEV=""
+        if [ -b "/dev/sda" ]; then
+            DEFAULT_DEV="/dev/sda"
+        elif [ -b "/dev/nvme0n1" ]; then
+            DEFAULT_DEV="/dev/nvme0n1"
+        elif [ -b "/dev/vda" ]; then
+            DEFAULT_DEV="/dev/vda"
+        fi
+        
+        if [ -n "$DEFAULT_DEV" ]; then
+            read -p "Enter block device (press Enter for default $DEFAULT_DEV): " USER_DEV
+            USER_DEV=${USER_DEV:-$DEFAULT_DEV}
+        else
+            read -p "Enter block device (e.g., /dev/sda): " USER_DEV
+        fi
+        
         if [ ! -b "$USER_DEV" ]; then
-            echo "Invalid block device"
+            echo "Invalid block device: $USER_DEV"
+            echo "Please check the device name and try again."
             exit 1
         fi
         save_to_env "USER_DEV" "$USER_DEV"
@@ -58,7 +76,7 @@ get_user_password() {
         clear
         echo "Setting password for user: $USER_USER"
         while true; do
-            read -s -p "Enter user password: " USER_USER_PASS
+            read -s -p "Enter user password (press Enter for default 'idk'): " USER_USER_PASS
             echo
             read -s -p "Confirm user password: " USER_PASS_CONFIRM
             echo
@@ -69,10 +87,11 @@ get_user_password() {
                 continue
             fi
             
-            # Check if password is empty
+            # If password is empty, set to default
             if [ -z "$USER_USER_PASS" ]; then
-                echo "Password cannot be empty! Please try again."
-                continue
+                USER_USER_PASS="idk"
+                echo "Using default password: idk"
+                break
             fi
             
             # Check if password contains problematic characters
@@ -129,7 +148,7 @@ get_root_password() {
         clear
         echo "Setting root password..."
         while true; do
-            read -s -p "Enter root password: " USER_ROOT_PASS
+            read -s -p "Enter root password (press Enter for default 'idk'): " USER_ROOT_PASS
             echo
             read -s -p "Confirm root password: " ROOT_PASS_CONFIRM
             echo
@@ -140,10 +159,11 @@ get_root_password() {
                 continue
             fi
             
-            # Check if password is empty
+            # If password is empty, set to default
             if [ -z "$USER_ROOT_PASS" ]; then
-                echo "Password cannot be empty! Please try again."
-                continue
+                USER_ROOT_PASS="idk"
+                echo "Using default password: idk"
+                break
             fi
             
             # Check if password contains problematic characters
