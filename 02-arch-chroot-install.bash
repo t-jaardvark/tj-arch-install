@@ -147,6 +147,8 @@ popd
 echo "Installing yay AUR helper..."
 cd /tmp
 git clone https://aur.archlinux.org/yay.git
+# Set proper ownership of the yay directory
+chown -R "$USER_USER:$USER_USER" yay
 cd yay
 # Build and install as the user
 sudo -u "$USER_USER" makepkg -si --noconfirm
