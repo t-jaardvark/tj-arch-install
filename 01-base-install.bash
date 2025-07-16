@@ -57,14 +57,32 @@ get_user_password() {
     if [ -z "$USER_USER_PASS" ]; then
         clear
         echo "Setting password for user: $USER_USER"
-        read -s -p "Enter user password: " USER_USER_PASS
-        echo
-        read -s -p "Confirm user password: " USER_PASS_CONFIRM
-        echo
-        if [ "$USER_USER_PASS" != "$USER_PASS_CONFIRM" ]; then
-            echo "Passwords do not match!"
-            exit 1
-        fi
+        while true; do
+            read -s -p "Enter user password: " USER_USER_PASS
+            echo
+            read -s -p "Confirm user password: " USER_PASS_CONFIRM
+            echo
+            
+            # Check if passwords match
+            if [ "$USER_USER_PASS" != "$USER_PASS_CONFIRM" ]; then
+                echo "Passwords do not match! Please try again."
+                continue
+            fi
+            
+            # Check if password is empty
+            if [ -z "$USER_USER_PASS" ]; then
+                echo "Password cannot be empty! Please try again."
+                continue
+            fi
+            
+            # Check if password contains problematic characters
+            if [[ "$USER_USER_PASS" =~ [\"\'\\] ]]; then
+                echo "Password contains invalid characters! Please avoid quotes and backslashes."
+                continue
+            fi
+            
+            break
+        done
         save_to_env "USER_USER_PASS" "$USER_USER_PASS"
     fi
 }
@@ -82,12 +100,12 @@ get_country() {
 
 # Function to get timezone
 get_timezone() {
-    if [ -z "$USER_TZ" ]; then
+    if [ -z "$USER_TIMEZONE" ]; then
         clear
         echo "Setting timezone..."
-        read -p "Enter timezone (default: America/Chicago): " USER_TZ
-        USER_TZ=${USER_TZ:-"America/Chicago"}
-        save_to_env "USER_TZ" "$USER_TZ"
+        read -p "Enter timezone (default: America/Chicago): " USER_TIMEZONE
+        USER_TIMEZONE=${USER_TIMEZONE:-"America/Chicago"}
+        save_to_env "USER_TIMEZONE" "$USER_TIMEZONE"
     fi
 }
 
@@ -110,14 +128,32 @@ get_root_password() {
     if [ -z "$USER_ROOT_PASS" ]; then
         clear
         echo "Setting root password..."
-        read -s -p "Enter root password: " USER_ROOT_PASS
-        echo
-        read -s -p "Confirm root password: " ROOT_PASS_CONFIRM
-        echo
-        if [ "$USER_ROOT_PASS" != "$ROOT_PASS_CONFIRM" ]; then
-            echo "Passwords do not match!"
-            exit 1
-        fi
+        while true; do
+            read -s -p "Enter root password: " USER_ROOT_PASS
+            echo
+            read -s -p "Confirm root password: " ROOT_PASS_CONFIRM
+            echo
+            
+            # Check if passwords match
+            if [ "$USER_ROOT_PASS" != "$ROOT_PASS_CONFIRM" ]; then
+                echo "Passwords do not match! Please try again."
+                continue
+            fi
+            
+            # Check if password is empty
+            if [ -z "$USER_ROOT_PASS" ]; then
+                echo "Password cannot be empty! Please try again."
+                continue
+            fi
+            
+            # Check if password contains problematic characters
+            if [[ "$USER_ROOT_PASS" =~ [\"\'\\] ]]; then
+                echo "Password contains invalid characters! Please avoid quotes and backslashes."
+                continue
+            fi
+            
+            break
+        done
         save_to_env "USER_ROOT_PASS" "$USER_ROOT_PASS"
     fi
 }
@@ -313,9 +349,14 @@ timedatectl set-ntp true
 
 # Update mirrors
 echo "Updating mirror list for $USER_COUNTRY..."
-reflector -c "$USER_COUNTRY" --latest 5 --download-timeout 10 --sort rate --save /etc/pacman.d/mirrorlist
+if ! reflector -c "$USER_COUNTRY" --latest 5 --download-timeout 10 --sort rate --save /etc/pacman.d/mirrorlist; then
+    echo "Warning: Failed to update mirror list, using default mirrors"
+fi
 echo "Synchronizing package databases..."
-pacman -Sy
+if ! pacman -Sy; then
+    echo "Error: Failed to sync package databases"
+    exit 1
+fi
 
 # Enable parallel downloads in pacman
 echo "Enabling parallel downloads in pacman..."
@@ -338,7 +379,10 @@ fi
 
 # Install base system
 echo "Installing base system packages (this may take a while)..."
-pacstrap /mnt base linux linux-firmware amd-ucode base-devel vi vim nano micro
+if ! pacstrap /mnt base linux linux-firmware amd-ucode base-devel vi vim nano micro; then
+    echo "Error: Failed to install base system packages"
+    exit 1
+fi
 
 echo "Copying mirror list to new system..."
 cp "/etc/pacman.d/mirrorlist" "/mnt/etc/pacman.d/"
@@ -346,13 +390,41 @@ cp "/etc/pacman.d/mirrorlist" "/mnt/etc/pacman.d/"
 echo "Generating fstab..."
 genfstab -U /mnt >> /mnt/etc/fstab
 
-curl -L -o "o2.sh" "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/refs/heads/main/02-arch-chroot-install.bash"
-cp "o1.sh" "o2.sh" "/mnt"
+if ! curl -L -o "o2.sh" "https://raw.githubusercontent.com/t-jaardvark/tj-arch-install/refs/heads/main/02-arch-chroot-install.bash"; then
+    echo "Error: Failed to download chroot installation script"
+    exit 1
+fi
+
+if [ -f "o1.sh" ]; then
+    cp "o1.sh" "/mnt"
+fi
+cp "o2.sh" "/mnt"
 chmod +x "/mnt/o1.sh" "/mnt/o2.sh"
 # Copy answers.env to new system
 if [ -f answers.env ]; then
     echo "Copying answers.env to new system..."
     cp answers.env /mnt/
+    
+    # Validate that all required variables are set
+    echo "Validating configuration..."
+    required_vars=("USER_DEV" "USER_USER" "USER_USER_PASS" "USER_ROOT_PASS" "USER_COUNTRY" "USER_TIMEZONE" "USER_HOSTNAME" "USER_REPLACE_PART")
+    missing_vars=()
+    
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var}" ]; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        echo "Warning: Missing required variables: ${missing_vars[*]}"
+        echo "This may cause issues during installation."
+    else
+        echo "All required variables are set."
+    fi
+else
+    echo "Error: answers.env not found!"
+    exit 1
 fi
 
 echo "Base installation complete! You can now chroot into the system."

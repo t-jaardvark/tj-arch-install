@@ -33,12 +33,40 @@ echo "127.0.1.1   $USER_HOSTNAME.localdomain   $USER_HOSTNAME" >> /etc/hosts
 #User Setup
 # Set root password
 echo "Setting root password..."
-echo "root:${USER_ROOT_PASS}" | chpasswd
+if [ -n "$USER_ROOT_PASS" ]; then
+    if echo "root:${USER_ROOT_PASS}" | chpasswd; then
+        echo "Root password set successfully"
+    else
+        echo "Warning: Failed to set root password with provided password"
+        echo "Setting default root password: 'idk'"
+        echo "root:idk" | chpasswd
+    fi
+else
+    echo "Warning: No root password provided, setting default password: 'idk'"
+    echo "root:idk" | chpasswd
+fi
 
 # Create user and set password
 echo "Creating user account..."
-useradd -mG wheel "$USER_USER"
-echo "${USER_USER}:${USER_USER_PASS}" | chpasswd
+if [ -n "$USER_USER" ]; then
+    useradd -mG wheel "$USER_USER"
+    
+    if [ -n "$USER_USER_PASS" ]; then
+        if echo "${USER_USER}:${USER_USER_PASS}" | chpasswd; then
+            echo "User password set successfully"
+        else
+            echo "Warning: Failed to set user password with provided password"
+            echo "Setting default user password: 'idk'"
+            echo "${USER_USER}:idk" | chpasswd
+        fi
+    else
+        echo "Warning: No user password provided, setting default password: 'idk'"
+        echo "${USER_USER}:idk" | chpasswd
+    fi
+else
+    echo "Error: No username provided"
+    exit 1
+fi
 
 # Install base packages
 echo "Installing additional packages..."
